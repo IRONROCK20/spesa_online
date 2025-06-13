@@ -13,11 +13,7 @@
   "startup": "application",
   "ingress": true,
   "ingress_port": 9007,
-  "options": {
-    "port": 80,
-    "grocy_url": "http://your-grocy:9283",
-    "grocy_api_key": "YOUR_GROCY_API_KEY"
-  },
+  "options": {},
   "schema": {
     "port": "int",
     "grocy_url": "str",
