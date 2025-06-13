@@ -14,4 +14,4 @@ RUN pip install flask docker gunicorn requests
 
 EXPOSE 9007
 
-CMD ["gunicorn", "-b", "0.0.0.0:12000", "app:app"]
+CMD ["gunicorn", "-b", "0.0.0.0:9007", "app:app"]
