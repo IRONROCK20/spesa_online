@@ -5,9 +5,10 @@ import requests
 from flask import Flask, render_template, redirect, url_for
 
 # Read options from add-on config
-PORT = int(os.getenv('PORT', 80))
-GROCY_URL = os.getenv('ADDON_OPTIONS', '') and json.loads(os.getenv('ADDON_OPTIONS')).get('grocy_url') or 'http://grocy:9283'
-GROCY_API_KEY = os.getenv('ADDON_OPTIONS', '') and json.loads(os.getenv('ADDON_OPTIONS')).get('grocy_api_key') or ''
+cfg = json.loads(os.getenv('ADDON_CONFIG', '{}'))
+GROCY_URL     = cfg.get('grocy_url',     'http://grocy:9283')
+GROCY_API_KEY = cfg.get('grocy_api_key', '')
+PORT          = int(cfg.get('port', 80))
 
 app = Flask(__name__, template_folder="/var/www/templates", static_folder="/var/www/static")
 HEADERS = { 'Content-Type': 'application/json', 'GROCY-API-KEY': GROCY_API_KEY }
