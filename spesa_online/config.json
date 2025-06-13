@@ -14,9 +14,5 @@
   "ingress": true,
   "ingress_port": 9007,
   "options": {},
-  "schema": {
-    "port": "int",
-    "grocy_url": "str",
-    "grocy_api_key": "str"
-  },
+  "schema": {},
 }
