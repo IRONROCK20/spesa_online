@@ -9,7 +9,7 @@ PORT = int(os.getenv('PORT', 80))
 GROCY_URL = os.getenv('ADDON_OPTIONS', '') and json.loads(os.getenv('ADDON_OPTIONS')).get('grocy_url') or 'http://grocy:9283'
 GROCY_API_KEY = os.getenv('ADDON_OPTIONS', '') and json.loads(os.getenv('ADDON_OPTIONS')).get('grocy_api_key') or ''
 
-app = Flask(__name__, template_folder="/var/www/templates", static_folder="/var/www/static")
+app = Flask(__name__, template_folder="templates")
 HEADERS = { 'Content-Type': 'application/json', 'GROCY-API-KEY': GROCY_API_KEY }
 
 @app.route('/')
