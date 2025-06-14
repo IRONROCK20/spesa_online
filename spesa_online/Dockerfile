@@ -1,24 +1,22 @@
-# Dockerfile
 ARG BUILD_FROM=hassioaddons/base-python:5.2.0
 FROM ${BUILD_FROM}
 
-# Use bash with pipefail for better error handling
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# 1) Install Python requirements
-COPY . /
-
-ARG BUILD_ARCH=arm64
-
-#COPY run.sh /
-# Install requirements for add-on
-RUN python3 -m pip install --no-cache-dir \
+# Install pip and build tools, then clean up
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      python3-pip build-essential \
+ && python3 -m pip install --no-cache-dir \
       flask \
       docker \
       gunicorn \
-      requests
+      requests \
+ && apt-get remove --purge -y build-essential \
+ && apt-get autoremove -y \
+ && rm -rf /var/lib/apt/lists/*
+
+COPY . /
 
 EXPOSE 9007
-
-#RUN chmod a+x /run.sh
 CMD ["gunicorn", "-b", "0.0.0.0:9007", "app:app"]
