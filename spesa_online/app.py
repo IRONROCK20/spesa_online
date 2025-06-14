@@ -2,7 +2,7 @@ import os
 import json
 import time
 import requests
-from flask import Flask, render_template, redirect, url_for
+from flask import Flask, render_template, redirect, url_for, request
 
 # Read options from add-on config
 PORT = int(os.getenv('PORT', 80))
