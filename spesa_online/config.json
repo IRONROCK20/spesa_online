@@ -13,6 +13,9 @@
   "startup": "application",
   "ingress": true,
   "ingress_port": 9007,
+  "privileged": [
+    "NET_ADMIN"
+  ],
   "options": {},
   "schema": {
     "port": "int",
