@@ -1,5 +1,5 @@
 # Dockerfile
-ARG BUILD_FROM=hassioaddons/base-python:5.3.3
+ARG BUILD_FROM=hassioaddons/base-python::5.2.0
 FROM ${BUILD_FROM}
 
 # Use bash with pipefail for better error handling
