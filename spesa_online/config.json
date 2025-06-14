@@ -14,5 +14,5 @@
   "ingress": true,
   "ingress_port": 9007,
   "options": {},
-  "schema": {},
+  "schema": {}
 }
