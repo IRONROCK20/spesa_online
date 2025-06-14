@@ -10,7 +10,7 @@ COPY . /
 
 ARG BUILD_ARCH=arm64
 
-RUN pip install flask docker gunicorn requests
+RUN pip install flask docker gunicorn
 
 EXPOSE 9007
 
