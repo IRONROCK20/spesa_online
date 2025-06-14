@@ -10,7 +10,7 @@
     "amd64",
     "i386"
   ],
-  "startup": "application",
+  "startup": "system",
   "ingress": true,
   "ingress_port": 9007,
   "privileged": [
