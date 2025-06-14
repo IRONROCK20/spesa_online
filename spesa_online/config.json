@@ -1,6 +1,6 @@
 {
   "name": "Spesa Online",
-  "version": "0.30",
+  "version": "0.31",
   "slug": "spesa_online",
   "description": "Spain online shopping",
   "arch": [
@@ -14,10 +14,6 @@
   "boot": "auto",
   "ingress": true,
   "ingress_port": 9007,
-  "privileged": [
-    "SYS_ADMIN"
-  ],
-  "full_access": true,
   "options": {},
   "schema": {}
 }
