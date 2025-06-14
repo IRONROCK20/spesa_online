@@ -1,6 +1,6 @@
 {
   "name": "Spesa Online",
-  "version": "0.26",
+  "version": "0.27",
   "slug": "spesa_online",
   "description": "Spain online shopping",
   "arch": [
@@ -14,12 +14,8 @@
   "ingress": true,
   "ingress_port": 9007,
   "privileged": [
-    "NET_ADMIN"
+    "SYS_ADMIN"
   ],
   "options": {},
-  "schema": {
-    "port": "int",
-    "grocy_url": "str",
-    "grocy_api_key": "str"
-  }
+  "schema": {}
 }
