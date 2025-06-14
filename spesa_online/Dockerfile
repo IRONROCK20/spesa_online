@@ -12,7 +12,11 @@ ARG BUILD_ARCH=arm64
 
 #COPY run.sh /
 # Install requirements for add-on
-RUN pip install flask docker gunicorn
+RUN python3 -m pip install --no-cache-dir \
+      flask \
+      docker \
+      gunicorn \
+      requests
 
 EXPOSE 9007
 
