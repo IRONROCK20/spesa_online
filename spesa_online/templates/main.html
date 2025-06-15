@@ -1,66 +1,131 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Spesa Online</title>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-      <style>
+  <title>Spesa Online</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Bootstrap CSS -->
+  <link
+    rel="stylesheet"
+    href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+  >
+  <!-- jQuery / Popper / Bootstrap JS -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script
+    src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"
+  ></script>
+  <script
+    src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"
+  ></script>
+
+  <style>
+    /* 1) Full‑height & black background */
+    html, body {
+      height: 100%;
+      margin: 0;
+      background-color: #000;
+      color: #fff;              /* so text in the sidebar is readable */
+    }
+
+    /* 2) Make our grid row full viewport height */
+    .full-vh {
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* 3) Left column (iframe) fills its parent */
+    .full-vh .col-md-8 {
+      padding: 0;               /* remove gutter */
+    }
+    .full-vh iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    /* 4) Sidebar scroll if content overflows */
+    .full-vh .col-md-4 {
+      overflow-y: auto;
+      padding-top: 1rem;
+    }
+
     .delete-button {
       color: red;
+    }
+    .sidebar-link {
+      color: #0dcaf0;           /* bright link color */
     }
   </style>
 </head>
 <body>
-<div class="container-fluid">
+  <div class="container-fluid full-vh">
     <div class="row">
-        <div class="col-md-8">
-            <iframe src="https://www.soysuper.com" style="width:100%;height:1000px;"></iframe>
-        </div>
-        <div class="col-md-4">
-            <a href="/import">Import Shopping List</a>
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Quantità</th>
-                        <th>Unità</th>
-                        <th>Prodotto</th>
-                        <th>Seleziona</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for product in products %}
-                        <tr>
-                            <td>{{ product[0] }}</td>
-                            <td>{{ product[1] }}</td>
-                            <td><a href="#" class="product-link" data-product="{{ product[2] }}">{{ product[2] }}</a></td>
-                            <td><input type="checkbox" class="product-checkbox" data-product="{{ product[2] }}"></td>
-                        </tr>
-                    {% endfor %}
-                    <br><form action="/delete_data">
-                    <input class="delete-button" type="submit" value="Delete Data">
-                    </form>
-                </tbody>
-            </table>
-        </div>
+      <!-- Left: iframe takes 2/3 width -->
+      <div class="col-md-8">
+        <iframe src="https://www.soysuper.com"></iframe>
+      </div>
+
+      <!-- Right: sidebar -->
+      <div class="col-md-4">
+        <p><a class="sidebar-link" href="/import">Import Shopping List</a></p>
+
+        <table class="table table-dark table-striped">
+          <thead>
+            <tr>
+              <th>Quantità</th>
+              <th>Unità</th>
+              <th>Prodotto</th>
+              <th>Seleziona</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for product in products %}
+            <tr>
+              <td>{{ product[0] }}</td>
+              <td>{{ product[1] }}</td>
+              <td>
+                <a
+                  href="#"
+                  class="product-link sidebar-link"
+                  data-product="{{ product[2] }}"
+                >{{ product[2] }}</a>
+              </td>
+              <td>
+                <input
+                  type="checkbox"
+                  class="product-checkbox"
+                  data-product="{{ product[2] }}"
+                >
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+
+        <form action="/delete_data">
+          <input
+            class="delete-button btn btn-outline-danger"
+            type="submit"
+            value="Delete Data"
+          >
+        </form>
+      </div>
     </div>
-</div>
-<script>
-$(document).ready(function() {
-    $('#file').change(function() {
-        $('#upload-form').submit();
-    });
-    $('.product-link').click(function(event) {
-        event.preventDefault();
+  </div>
+
+  <script>
+    $(function() {
+      $('.product-link').click(function(e) {
+        e.preventDefault();
         var product = $(this).data('product');
-        var iframe = $('iframe');
-        iframe.attr('src', 'https://www.soysuper.com/search?q=' + product);
-        $('.product-checkbox[data-product="' + product + '"]').prop('checked', true);
+        $('iframe').attr(
+          'src',
+          'https://www.soysuper.com/search?q=' + encodeURIComponent(product)
+        );
+        $('.product-checkbox[data-product="' + product + '"]')
+          .prop('checked', true);
+      });
     });
-});
-</script>
+  </script>
 </body>
 </html>
