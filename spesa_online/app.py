@@ -60,7 +60,7 @@ def index():
         flash(f"Error fetching shopping list: {e}", 'error')
     # Default iframe src: soysuper homepage
     iframe_src = 'https://www.soysuper.com'
-    return render_template('home.html', products=products, iframe_src=iframe_src)
+    return render_template('main.html', products=products, iframe_src=iframe_src)
 
 @app.route('/delete_data', methods=['POST'])
 def delete_data():
