@@ -11,7 +11,7 @@ try:
     opts = json.loads(os.getenv('ADDON_OPTIONS', '{}'))
 except Exception:
     pass
-GROCY_URL = opts.get('grocy_url') or os.getenv('GROCY_URL') or 'http://localhost:9283'
+GROCY_URL = opts.get('grocy_url') or os.getenv('GROCY_URL') or 'http://localhost:9254'
 GROCY_API_KEY = opts.get('grocy_api_key') or os.getenv('GROCY_API_KEY') or 'ul1YACYf2yJO7UvlwMvV40MkvAQ3IlsrsYtWYa4NavaFQOkWd1'
 
 app = Flask(__name__, template_folder='templates')
