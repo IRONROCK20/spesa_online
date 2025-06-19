@@ -2,149 +2,130 @@ import os
 import json
 import time
 import requests
-from flask import Flask, render_template, redirect, url_for, request, session, flash, jsonify
-from werkzeug.middleware.proxy_fix import ProxyFix
-from functools import wraps
+from flask import Flask, render_template, request, redirect, url_for, flash
 
 # Read options from add-on config
 PORT = int(os.getenv('PORT', 80))
 opts = {}
 try:
-    opts = json.loads(os.getenv('ADDON_OPTIONS', "{}"))
+    opts = json.loads(os.getenv('ADDON_OPTIONS', '{}'))
 except Exception:
     pass
-GROCY_URL = opts.get('grocy_url') or 'http://grocy:9283'
-GROCY_API_KEY = opts.get('grocy_api_key') or ''
+GROCY_URL = opts.get('grocy_url') or os.getenv('GROCY_URL') or 'http://grocy:9283'
+GROCY_API_KEY = opts.get('grocy_api_key') or os.getenv('GROCY_API_KEY') or ''
 
-# Login credentials: set via ADDON_OPTIONS: 'login_username' and 'login_password'
-LOGIN_USERNAME = opts.get('login_username') or os.getenv('LOGIN_USERNAME') or 'admin'
-LOGIN_PASSWORD = opts.get('login_password') or os.getenv('LOGIN_PASSWORD') or 'admin'
+app = Flask(__name__, template_folder='templates')
+app.secret_key = os.getenv('SECRET_KEY', 'change_this_secret')
 
-app = Flask(__name__, template_folder="templates")
-# Secret key for session
-app.secret_key = os.getenv('SECRET_KEY', 'change_this_to_a_strong_secret')
-
-# Configure session cookies to work in iframe contexts
-app.config.update(
-    SESSION_COOKIE_SAMESITE="None",
-    SESSION_COOKIE_SECURE=True,
-    SESSION_COOKIE_HTTPONLY=True
-)
-
-# Apply ProxyFix if behind HA ingress proxy
-debug_proxy = os.getenv('ENABLE_PROXY_FIX', 'true').lower() in ('true', '1', 'yes')
-if debug_proxy:
-    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
-
-# Remove restrictive frame options so the app can be embedded in HA iframe
-@app.after_request
-def remove_frame_options(response):
-    response.headers.pop('X-Frame-Options', None)
-    return response
-
-# Log cookies and session data for debugging
-@app.before_request
-def log_request_info():
-    app.logger.debug(f"Request path: {request.path}, Cookies: {request.cookies}, Session: {dict(session)}")
-
+# Headers for Grocy API
 HEADERS = {'Content-Type': 'application/json', 'GROCY-API-KEY': GROCY_API_KEY}
 
-def login_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        if not session.get('logged_in'):
-            next_path = request.path
-            return redirect(url_for('login', next=next_path))
-        return f(*args, **kwargs)
-    return decorated
-
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        username = request.form.get('username', '')
-        password = request.form.get('password', '')
-        app.logger.debug(f"Login attempt: username={username}")
-        if username == LOGIN_USERNAME and password == LOGIN_PASSWORD:
-            session.clear()
-            session['logged_in'] = True
-            flash('Logged in successfully.', 'success')
-            next_page = request.args.get('next')
-            # Prevent open redirect: ensure next_page is a safe path
-            if next_page and next_page.startswith('/'):
-                app.logger.debug(f"Redirecting to next: {next_page}")
-                return redirect(next_page)
-            return redirect(url_for('index'))
-        else:
-            flash('Invalid credentials.', 'error')
-            app.logger.debug("Invalid login credentials provided.")
-    return render_template('login.html')
-
-@app.route('/logout')
-def logout():
-    session.clear()
-    flash('Logged out.', 'info')
-    return redirect(url_for('login'))
-
 @app.route('/')
-@login_required
 def index():
-    return render_template('main.html', products=[])
-
-@app.route('/import')
-@login_required
-def import_data():
+    """Retrieve the current shopping list from Grocy and render the main page."""
     # Fetch Grocy shopping list entries
-    try:
-        url = f"{GROCY_URL}/api/stock/shopping_list"
-        r = requests.get(url, headers=HEADERS, timeout=10)
-        r.raise_for_status()
-        items = r.json()
-    except Exception as e:
-        app.logger.error(f"Error fetching shopping list: {e}")
-        items = []
-
     products = []
-    for item in items:
-        qty = item.get('amount', 0)
-        try:
-            prod = requests.get(f"{GROCY_URL}/api/objects/products/{item['product_id']}", headers=HEADERS, timeout=10)
-            prod.raise_for_status()
-            prod_json = prod.json()
-            products.append([qty, prod_json.get('qu_id_purchase_unit', ''), prod_json.get('name', '')])
-        except Exception as e:
-            app.logger.warning(f"Error fetching product {item.get('product_id')}: {e}")
-
-    template_name = 'home.html' if os.path.exists(os.path.join(app.template_folder or '', 'home.html')) else 'main.html'
-    return render_template(template_name, products=products)
-
-@app.route('/delete_data')
-@login_required
-def delete_data():
-    # Delete all shopping list entries
     try:
         url = f"{GROCY_URL}/api/stock/shopping_list"
         r = requests.get(url, headers=HEADERS, timeout=10)
         r.raise_for_status()
         items = r.json()
+        for item in items:
+            # Each item: id, product_id, amount
+            item_id = item.get('id')
+            qty = item.get('amount', 0)
+            # Fetch product details if product_id available
+            name = ''
+            unit = ''
+            pid = item.get('product_id')
+            if pid:
+                try:
+                    pr = requests.get(f"{GROCY_URL}/api/objects/products/{pid}", headers=HEADERS, timeout=10)
+                    pr.raise_for_status()
+                    prj = pr.json()
+                    name = prj.get('name', '')
+                    # Get unit name by ID
+                    uid = prj.get('qu_id_purchase_unit')
+                    if uid:
+                        # Fetch unit
+                        ur = requests.get(f"{GROCY_URL}/api/objects/quantity_units/{uid}", headers=HEADERS, timeout=10)
+                        if ur.ok:
+                            uj = ur.json()
+                            unit = uj.get('name', '')
+                except Exception:
+                    # On error, fallback to empty name/unit
+                    pass
+            products.append({'id': item_id, 'quantity': qty, 'unit': unit, 'name': name})
     except Exception as e:
-        app.logger.error(f"Error fetching shopping list for delete: {e}")
-        items = []
-    for item in items:
+        flash(f"Error fetching shopping list: {e}", 'error')
+    # Default iframe src: soysuper homepage
+    iframe_src = 'https://www.soysuper.com'
+    return render_template('home.html', products=products, iframe_src=iframe_src)
+
+@app.route('/delete_data', methods=['POST'])
+def delete_data():
+    """Delete selected shopping list entries in Grocy."""
+    selected = request.form.getlist('selected')
+    if not selected:
+        flash('No items selected for deletion.', 'warning')
+        return redirect(url_for('index'))
+    errors = []
+    for item_id in selected:
         try:
-            del_url = f"{GROCY_URL}/api/stock/shopping_list/{item['id']}"
-            d = requests.delete(del_url, headers=HEADERS, timeout=10)
-            d.raise_for_status()
-            time.sleep(1)
+            durl = f"{GROCY_URL}/api/stock/shopping_list/{item_id}"
+            d = requests.delete(durl, headers=HEADERS, timeout=10)
+            if not d.ok:
+                errors.append(f"Failed to delete item {item_id}: {d.status_code}")
         except Exception as e:
-            app.logger.warning(f"Error deleting shopping list item {item.get('id')}: {e}")
+            errors.append(f"Error deleting item {item_id}: {e}")
+    if errors:
+        flash('Errors: ' + '; '.join(errors), 'error')
+    else:
+        flash('Selected items deleted.', 'success')
+    # small delay to allow Grocy to update
+    time.sleep(1)
     return redirect(url_for('index'))
 
-@app.route('/debug-session')
-def debug_session():
-    # Returns current session data and cookies for debugging
-    data = {'cookies': request.cookies, 'session': dict(session)}
-    return jsonify(data)
+@app.route('/search')
+def search():
+    """Endpoint to set iframe source via query param, redirect to index with iframe src."""
+    product = request.args.get('product', '')
+    if product:
+        # Construct soysuper search URL
+        iframe_src = f'https://www.soysuper.com/busca/{product}'
+        # Retrieve current shopping list again for rendering
+        products = []
+        try:
+            url = f"{GROCY_URL}/api/stock/shopping_list"
+            r = requests.get(url, headers=HEADERS, timeout=10)
+            r.raise_for_status()
+            items = r.json()
+            for item in items:
+                item_id = item.get('id')
+                qty = item.get('amount', 0)
+                name = ''
+                unit = ''
+                pid = item.get('product_id')
+                if pid:
+                    try:
+                        pr = requests.get(f"{GROCY_URL}/api/objects/products/{pid}", headers=HEADERS, timeout=10)
+                        pr.raise_for_status()
+                        prj = pr.json()
+                        name = prj.get('name', '')
+                        uid = prj.get('qu_id_purchase_unit')
+                        if uid:
+                            ur = requests.get(f"{GROCY_URL}/api/objects/quantity_units/{uid}", headers=HEADERS, timeout=10)
+                            if ur.ok:
+                                uj = ur.json()
+                                unit = uj.get('name', '')
+                    except Exception:
+                        pass
+                products.append({'id': item_id, 'quantity': qty, 'unit': unit, 'name': name})
+        except Exception as e:
+            flash(f"Error fetching shopping list: {e}", 'error')
+        return render_template('home.html', products=products, iframe_src=iframe_src)
+    else:
+        return redirect(url_for('index'))
 
 if __name__ == '__main__':
-    # Bind to the correct port from environment
     app.run(host='0.0.0.0', port=PORT, debug=True)
