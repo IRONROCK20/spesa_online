@@ -12,10 +12,7 @@
   ],
   "startup": "system",
   "boot": "auto",
-  "privileged": [
-    "SYS_ADMIN"
-  ],
-  "full_access": true,
+  "network": "host",
   "ingress": true,
   "ingress_port": 9007,
   "options": {},
