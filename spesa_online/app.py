@@ -2,7 +2,7 @@ import os
 import json
 import time
 import requests
-from flask import Flask, render_template, redirect, url_for, request, session, flash
+from flask import Flask, render_template, redirect, url_for, request, session, flash, jsonify
 from werkzeug.middleware.proxy_fix import ProxyFix
 from functools import wraps
 
@@ -17,7 +17,6 @@ GROCY_URL = opts.get('grocy_url') or 'http://grocy:9283'
 GROCY_API_KEY = opts.get('grocy_api_key') or ''
 
 # Login credentials: set via ADDON_OPTIONS: 'login_username' and 'login_password'
-# Fallback to environment vars or defaults (change defaults in production)
 LOGIN_USERNAME = opts.get('login_username') or os.getenv('LOGIN_USERNAME') or 'admin'
 LOGIN_PASSWORD = opts.get('login_password') or os.getenv('LOGIN_PASSWORD') or 'admin'
 
@@ -43,6 +42,11 @@ def remove_frame_options(response):
     response.headers.pop('X-Frame-Options', None)
     return response
 
+# Log cookies and session data for debugging
+@app.before_request
+def log_request_info():
+    app.logger.debug(f"Request path: {request.path}, Cookies: {request.cookies}, Session: {dict(session)}")
+
 HEADERS = {'Content-Type': 'application/json', 'GROCY-API-KEY': GROCY_API_KEY}
 
 def login_required(f):
@@ -59,6 +63,7 @@ def login():
     if request.method == 'POST':
         username = request.form.get('username', '')
         password = request.form.get('password', '')
+        app.logger.debug(f"Login attempt: username={username}")
         if username == LOGIN_USERNAME and password == LOGIN_PASSWORD:
             session.clear()
             session['logged_in'] = True
@@ -66,10 +71,12 @@ def login():
             next_page = request.args.get('next')
             # Prevent open redirect: ensure next_page is a safe path
             if next_page and next_page.startswith('/'):
+                app.logger.debug(f"Redirecting to next: {next_page}")
                 return redirect(next_page)
             return redirect(url_for('index'))
         else:
             flash('Invalid credentials.', 'error')
+            app.logger.debug("Invalid login credentials provided.")
     return render_template('login.html')
 
 @app.route('/logout')
@@ -132,6 +139,12 @@ def delete_data():
             app.logger.warning(f"Error deleting shopping list item {item.get('id')}: {e}")
     return redirect(url_for('index'))
 
+@app.route('/debug-session')
+def debug_session():
+    # Returns current session data and cookies for debugging
+    data = {'cookies': request.cookies, 'session': dict(session)}
+    return jsonify(data)
+
 if __name__ == '__main__':
     # Bind to the correct port from environment
-    app.run(host='0.0.0.0', port=PORT, debug=False)
+    app.run(host='0.0.0.0', port=PORT, debug=True)
